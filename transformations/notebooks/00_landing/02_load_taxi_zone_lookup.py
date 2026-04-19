@@ -1,28 +1,31 @@
 # Databricks notebook source
+import sys
+import os
+# Go two levels up to reach the project root
+project_root = os.path.abspath(os.path.join(os.getcwd(), "../.."))
+
+if project_root not in sys.path:
+    sys.path.append(project_root)
+
 import urllib.request
 import shutil
-import os
+from modules.data_loader.file_downloader import download_file
 
 try:
-    # Target URL of the public csv file to download
+    # Construct the URL for the Parquet file corresponding to this month
     url = "https://d37ci6vzurychx.cloudfront.net/misc/taxi_zone_lookup.csv"
 
-    # Open a connection to the remote URL and fetch the Parquet file as a stream
-    response = urllib.request.urlopen(url)
+    # Define and create the local directory for this date's data
+    dir_path = f"/Volumes/nyctaxi/00_landing/data_sources/lookup"
 
-    # Create the destination directory for storing the downloaded Parquet file
-    dir_path = "/Volumes/nyctaxi/00_landing/data_sources/lookup"
-    os.makedirs(dir_path, exist_ok=True) 
-
-    # Define the full local path (including filename) where the file will be saved
+    # Define the full path for the downloaded file
     local_path = f"{dir_path}/taxi_zone_lookup.csv"
 
-    # Write the contents of the response stream to the specified local file path
-    with open(local_path, 'wb') as f: 
-        shutil.copyfileobj(response, f) # Copy data from response to file
+    # Download the file
+    download_file(url, dir_path, local_path)
+    
     dbutils.jobs.taskValues.set(key="continue_downstream", value="yes")
-    print("File succesfully uploaded!")
-
+    print("File succesfully uploaded")
 except Exception as e:
     dbutils.jobs.taskValues.set(key="continue_downstream", value="no")
-    print(f"Error downloading file: {str(e)}")
+    print(f"File download failed: {str(e)}")
